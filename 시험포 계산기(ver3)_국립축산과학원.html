@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>국립축산과학원 조사료생산시스템 시험포 파종량 및 시비량 계산기</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      padding: 20px;
+      max-width: 900px;
+      margin: auto;
+      background-color: #f9f9f9;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 15px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1em;
+    }
+
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      background-color: #4CAF50;
+      color: white;
+      font-size: 1.1em;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    .result {
+      margin-top: 30px;
+      padding: 15px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px 5px;
+      text-align: center;
+      font-size: 0.95em;
+    }
+
+    th {
+      background-color: #e9ecef;
+    }
+
+    @media (max-width: 600px) {
+      th, td {
+        font-size: 0.85em;
+        padding: 6px 4px;
+      }
+
+      input, button {
+        font-size: 0.95em;
+      }
+    }
+
+    #saveBtn {
+      background-color: #007bff;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🌾 비료 시비량 계산기</h2>
+
+  <label>결과 제목:</label>
+  <input type="text" id="titleInput" placeholder="예: 목초 시험포 조성계획">
+
+  <label>초종:</label>
+  <input type="text" id="cropType" placeholder="예: IRG, 톨 페스큐, 옥수수, 호밀 등">
+
+  <label>품종명:</label>
+  <input type="text" id="variety" placeholder="예: 코윈어리, 그린마스터 등">
+
+  <label>파종량 기준 (kg/ha):</label>
+  <input type="number" id="seedingRateInput" placeholder="예: 150">
+
+  <label>질소 (kg/ha):</label>
+  <input type="number" id="nInput">
+
+  <label>인산 (kg/ha):</label>
+  <input type="number" id="pInput">
+
+  <label>가리 (kg/ha):</label>
+  <input type="number" id="kInput">
+
+  <label>면적 (㎡):</label>
+  <input type="number" id="areaInput">
+
+  <label>질소 기비 비율 (%):</label>
+  <input type="number" id="nBaseRateInput">
+
+  <label>인산 기비 비율 (%):</label>
+  <input type="number" id="pBaseRateInput">
+
+  <label>가리 기비 비율 (%):</label>
+  <input type="number" id="kBaseRateInput">
+
+  <button onclick="calculate()">📊 시비량 계산하기</button>
+
+  <div class="result" id="resultArea" style="display:none;"></div>
+  <button id="saveBtn" style="display:none;" onclick="saveAsImage()">📷 JPEG로 저장하기</button>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+    function calculate() {
+      const haToM2 = 10000, kgToG = 1000;
+      const N_RATIO = 0.46, P_RATIO = 0.20, K_RATIO = 0.60;
+
+      const title = document.getElementById("titleInput").value || "비료 시비 계획 결과";
+      const cropType = document.getElementById("cropType").value || "미입력";
+      const variety = document.getElementById("variety").value || "미입력";
+
+      const seedingRateKgHa = parseFloat(document.getElementById("seedingRateInput").value) || 0;
+      const seedingRatePerM2_g = seedingRateKgHa / 10;
+
+      const n = parseFloat(document.getElementById("nInput").value) || 0;
+      const p = parseFloat(document.getElementById("pInput").value) || 0;
+      const k = parseFloat(document.getElementById("kInput").value) || 0;
+      const areaM2 = parseFloat(document.getElementById("areaInput").value) || 0;
+
+      const nBaseRate = parseFloat(document.getElementById("nBaseRateInput").value) / 100 || 0;
+      const pBaseRate = parseFloat(document.getElementById("pBaseRateInput").value) / 100 || 0;
+      const kBaseRate = parseFloat(document.getElementById("kBaseRateInput").value) / 100 || 0;
+
+      if (areaM2 <= 0) {
+        document.getElementById("resultArea").style.display = 'none';
+        document.getElementById("saveBtn").style.display = 'none';
+        return;
+      }
+
+      const nPerM2 = n / haToM2, pPerM2 = p / haToM2, kPerM2 = k / haToM2;
+
+      const totalN_g = nPerM2 * areaM2 * kgToG;
+      const totalP_g = pPerM2 * areaM2 * kgToG;
+      const totalK_g = kPerM2 * areaM2 * kgToG;
+
+      const baseN = totalN_g * nBaseRate;
+      const topN = totalN_g * (1 - nBaseRate);
+      const baseP = totalP_g * pBaseRate;
+      const topP = totalP_g * (1 - pBaseRate);
+      const baseK = totalK_g * kBaseRate;
+      const topK = totalK_g * (1 - kBaseRate);
+
+      const totalN_fert = totalN_g / N_RATIO;
+      const totalP_fert = totalP_g / P_RATIO;
+      const totalK_fert = totalK_g / K_RATIO;
+
+      const totalSeeding_g = areaM2 * seedingRatePerM2_g;
+
+      document.getElementById("resultArea").style.display = 'block';
+      document.getElementById("saveBtn").style.display = 'block';
+
+      document.getElementById("resultArea").innerHTML = `
+        <div style="text-align:center; margin-bottom: 15px;">
+          <h3 style="margin:0; font-size: 1.5em;">${title}</h3>
+        </div>
+        <p style="text-align:center;">
+          🌱 초종: <strong>${cropType}</strong> / 품종: <strong>${variety}</strong><br>
+          📦 예상 파종량: <strong>${totalSeeding_g.toLocaleString()} g</strong> (기준: ${seedingRateKgHa} kg/ha)
+        </p>
+        <p style="text-align:center;">입력 면적: <strong>${areaM2.toLocaleString()} ㎡</strong></p>
+        <table>
+          <thead>
+            <tr>
+              <th>항목</th><th>총량 (g)</th><th>기비 (g)</th><th>추비 (g)</th><th>단비 환산량 (g)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>질소 (요소 46%)</td>
+              <td>${totalN_g.toFixed(1)}</td>
+              <td>${baseN.toFixed(1)}</td>
+              <td>${topN.toFixed(1)}</td>
+              <td>${totalN_fert.toFixed(1)}</td>
+            </tr>
+            <tr>
+              <td>인산 (용성인비 20%)</td>
+              <td>${totalP_g.toFixed(1)}</td>
+              <td>${baseP.toFixed(1)}</td>
+              <td>${topP.toFixed(1)}</td>
+              <td>${totalP_fert.toFixed(1)}</td>
+            </tr>
+            <tr>
+              <td>가리 (염화가리 60%)</td>
+              <td>${totalK_g.toFixed(1)}</td>
+              <td>${baseK.toFixed(1)}</td>
+              <td>${topK.toFixed(1)}</td>
+              <td>${totalK_fert.toFixed(1)}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="margin-top: 20px; text-align: right; font-size: 0.9em; color: #555;">
+          제작자: 국립축산과학원 정종성 농업연구사 ver 1.0
+        </div>
+      `;
+    }
+
+    function saveAsImage() {
+      const target = document.getElementById("resultArea");
+      html2canvas(target).then(canvas => {
+        const link = document.createElement("a");
+        link.download = "시비량_결과.jpeg";
+        link.href = canvas.toDataURL("image/jpeg");
+        link.click();
+      });
+    }
+  </script>
+</body>
+</html>
